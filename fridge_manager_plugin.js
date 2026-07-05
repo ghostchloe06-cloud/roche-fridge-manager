@@ -159,11 +159,20 @@
     await runtime.roche.storage.set(STORAGE_KEY, clean);
   }
 
+  var noticeTimer = null;
   function notify(message) {
     state.notice = message;
     if (runtime.roche && runtime.roche.ui && runtime.roche.ui.toast) {
       try { runtime.roche.ui.toast(message); } catch (error) {}
     }
+    if (noticeTimer) clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(function() {
+      noticeTimer = null;
+      if (state.notice === message) {
+        state.notice = "";
+        render(runtime.container);
+      }
+    }, 2600);
   }
 
   function inventoryStats() {
@@ -458,11 +467,11 @@
     var ingredients = (slot.ingredients || []).join("、");
     return [
       '<article class="fm-meal">',
-        '<div class="fm-meal-top">',
-          '<span>' + slot.mealLabel + '</span>',
-          '<button data-action="reroll-slot" data-id="' + slot.id + '" title="重 roll">' + ICONS.refresh + '</button>',
+        '<div class="fm-meal-row">',
+          '<span class="fm-meal-label">' + slot.mealLabel + '</span>',
+          '<textarea data-menu-title="' + slot.id + '" rows="1" placeholder="留空可生成">' + escapeHtml(slot.title || "") + '</textarea>',
+          '<button class="fm-meal-reroll" data-action="reroll-slot" data-id="' + slot.id + '" title="重 roll">' + ICONS.refresh + '</button>',
         '</div>',
-        '<textarea data-menu-title="' + slot.id + '" rows="1" placeholder="' + slot.mealLabel + '餐，留空可生成">' + escapeHtml(slot.title || "") + '</textarea>',
         '<input data-menu-note="' + slot.id + '" value="' + escapeHtml(slot.note || "") + '" placeholder="备注/想吃口味">',
         '<p>' + escapeHtml(ingredients || "暂无食材") + (slot.calories ? " · 约" + escapeHtml(slot.calories) : "") + '</p>',
       '</article>'
@@ -1211,9 +1220,11 @@
       "." + ROOT_CLASS + " .fm-day-label{padding:24px 0 0 26px;color:#9a9a9e;font-size:14px;font-weight:600}",
       "." + ROOT_CLASS + " .fm-meal-cells{display:grid;grid-template-columns:1fr;gap:12px;padding:14px 26px 16px 0}",
       "." + ROOT_CLASS + " .fm-meal{background:#ffffff;border:1px solid #ececee;border-radius:18px;padding:14px;min-width:0}",
-      "." + ROOT_CLASS + " .fm-meal-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:#9a9a9e;font-size:13px;font-weight:600;letter-spacing:1px}",
-      "." + ROOT_CLASS + " .fm-meal-top button{border:0;background:#1c1c1e;color:#ffffff;border-radius:999px;width:34px;height:34px;display:grid;place-items:center}",
-      "." + ROOT_CLASS + " .fm-meal textarea{border:0;background:#f2f2f7;border-radius:14px;margin-bottom:10px;font-size:14px;font-weight:600;min-height:0}",
+      "." + ROOT_CLASS + " .fm-meal-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}",
+      "." + ROOT_CLASS + " .fm-meal-label{flex:0 0 auto;color:#9a9a9e;font-size:13px;font-weight:600;letter-spacing:1px}",
+      "." + ROOT_CLASS + " .fm-meal-reroll{flex:0 0 auto;border:0;background:#1c1c1e;color:#ffffff;border-radius:999px;width:28px;height:28px;display:grid;place-items:center}",
+      "." + ROOT_CLASS + " .fm-meal-reroll svg{width:14px;height:14px}",
+      "." + ROOT_CLASS + " .fm-meal-row textarea{flex:1;min-width:0;border:0;background:#f2f2f7;border-radius:14px;margin-bottom:0;font-size:14px;font-weight:600;min-height:0}",
       "." + ROOT_CLASS + " .fm-meal input{border:0;background:#ffffff;border-top:1px solid #ececee;border-radius:0;padding:10px 2px;margin-bottom:8px}",
       "." + ROOT_CLASS + " .fm-meal p{color:#6e6e73;font-size:13px;line-height:1.5}",
       "." + ROOT_CLASS + " .fm-toggle{display:flex;align-items:center;gap:10px;margin:14px 0;color:#6e6e73;font-weight:600}",
@@ -1284,6 +1295,7 @@
     container.removeEventListener("click", handleClick);
     container.removeEventListener("submit", handleSubmit);
     container.removeEventListener("change", handleChange);
+    if (noticeTimer) { clearTimeout(noticeTimer); noticeTimer = null; }
     if (runtime.styleEl && runtime.styleEl.parentNode) runtime.styleEl.parentNode.removeChild(runtime.styleEl);
     container.replaceChildren();
     runtime.roche = null;
