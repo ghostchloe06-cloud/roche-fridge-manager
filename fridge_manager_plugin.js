@@ -498,7 +498,7 @@
         '<textarea data-manager-style rows="2" placeholder="你希望 TA 怎么管你，例如：温柔但严格、少油少糖、晚餐别太重">' + escapeHtml(state.managerStyle || "") + '</textarea>',
       '</div>',
       manager ? '<div class="fm-manager-card"><strong>当前管理员：' + escapeHtml(displayName(manager)) + '</strong><span>' + escapeHtml(manager.bio || manager.description || "会在生成时读取人设作为参考。") + '</span></div>' : "",
-      '<label class="fm-toggle"><input type="checkbox" data-action="toggle-memory"' + (enabled ? " checked" : "") + '>生成菜单时读取已勾选会话的长期记忆</label>',
+      '<label class="fm-toggle"><input type="checkbox" data-toggle-memory' + (enabled ? " checked" : "") + '>生成菜单时读取已勾选会话的长期记忆</label>',
       '<div class="fm-actions">',
         '<button class="fm-secondary" data-action="load-conversations">刷新会话列表</button>',
       '</div>',
@@ -548,6 +548,11 @@
   async function handleClick(event) {
     var target = event.target.closest("[data-action], [data-tab], [data-subtab], [data-filter]");
     if (!target || !runtime.root || !runtime.root.contains(target)) return;
+    /* 表单控件（checkbox/radio/select/textarea 等）只应由 change 事件驱动，绝不能被这里的
+       click 派发逻辑捕获——否则 preventDefault 会取消勾选框的默认行为并连带吃掉 change 事件，
+       随后的整页重渲染还会把滚动位置重置到顶部。 */
+    var tagName = (target.tagName || "").toUpperCase();
+    if (tagName === "INPUT" || tagName === "SELECT" || tagName === "TEXTAREA") return;
     var action = target.getAttribute("data-action");
     var tab = target.getAttribute("data-tab");
     var subtab = target.getAttribute("data-subtab");
@@ -641,7 +646,7 @@
       await saveState();
       return;
     }
-    if (target.matches('[data-action="toggle-memory"]')) {
+    if (target.matches('[data-toggle-memory]')) {
       state.settings.memoryEnabled = target.checked;
       await saveState();
       return;
