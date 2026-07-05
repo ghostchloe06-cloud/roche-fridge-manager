@@ -17,6 +17,7 @@
     tab: "inventory",
     mealSubTab: "menu",
     filter: "全部",
+    filtersExpanded: false,
     inventory: [],
     menu: [],
     shoppingList: [],
@@ -328,41 +329,23 @@
   }
 
   function renderFilters() {
-    var filters = ["全部", "即将到期", "库存偏低", "冷藏", "冷冻", "常温"].concat(categories());
+    var base = ["全部", "即将到期", "库存偏低", "冷藏", "冷冻", "常温"];
+    var extra = categories().filter(function(c) { return base.indexOf(c) < 0; });
     var seen = {};
-    return '<div class="fm-chips">' + filters.map(function(f) {
+    var visible = state.filtersExpanded ? base.concat(extra) : base;
+    var chips = visible.map(function(f) {
       if (seen[f]) return "";
       seen[f] = true;
       return '<button class="' + (state.filter === f ? "active" : "") + '" data-filter="' + escapeHtml(f) + '">' + escapeHtml(f) + '</button>';
-    }).join("") + '</div>';
+    }).join("");
+    var toggle = extra.length ? '<button class="fm-chip-toggle" data-action="toggle-filters">' + (state.filtersExpanded ? "收起" : "更多分类 (" + extra.length + ")") + '</button>' : "";
+    return '<div class="fm-chips">' + chips + toggle + '</div>';
   }
 
   function renderInventoryList() {
     var list = filteredInventory();
     if (!list.length) return '<div class="fm-empty">还没有库存。先加一点食材，菜单生成会更听话。</div>';
-    var groups = groupInventoryByCategory(list);
-    return '<div class="fm-item-groups">' + groups.map(function(group) {
-      return [
-        '<section class="fm-item-group">',
-          '<h4>' + escapeHtml(group.name) + '<span>' + group.items.length + '</span></h4>',
-          '<div class="fm-items">' + group.items.map(renderInventoryItem).join("") + '</div>',
-        '</section>'
-      ].join("");
-    }).join("") + '</div>';
-  }
-
-  function groupInventoryByCategory(list) {
-    var order = DEFAULT_CATEGORIES.slice();
-    var buckets = {};
-    list.forEach(function(item) {
-      var cat = item.category || "未分类";
-      if (!buckets[cat]) buckets[cat] = [];
-      buckets[cat].push(item);
-      if (order.indexOf(cat) < 0) order.push(cat);
-    });
-    return order.filter(function(cat) { return buckets[cat] && buckets[cat].length; }).map(function(cat) {
-      return { name: cat, items: buckets[cat] };
-    });
+    return '<div class="fm-items">' + list.map(renderInventoryItem).join("") + '</div>';
   }
 
   function renderInventoryItem(item) {
@@ -494,7 +477,7 @@
           '<textarea data-menu-title="' + slot.id + '" rows="1" placeholder="留空可生成">' + escapeHtml(slot.title || "") + '</textarea>',
           '<button class="fm-meal-reroll" data-action="reroll-slot" data-id="' + slot.id + '" title="重 roll">' + ICONS.refresh + '</button>',
         '</div>',
-        '<input data-menu-note="' + slot.id + '" value="' + escapeHtml(slot.note || "") + '" placeholder="备注/想吃口味">',
+        '<textarea data-menu-note="' + slot.id + '" rows="2" placeholder="备注/想吃口味">' + escapeHtml(slot.note || "") + '</textarea>',
         '<p>' + escapeHtml(ingredients || "暂无食材") + (slot.calories ? " · 约" + escapeHtml(slot.calories) : "") + '</p>',
       '</article>'
     ].join("");
@@ -637,6 +620,7 @@
     if (action === "delete-shopping") state.shoppingList = state.shoppingList.filter(function(x) { return x.id !== itemId; });
     if (action === "select-manager") state.managerCharacterId = itemId || "";
     if (action === "set-menu-mode") state.settings.menuMode = itemId === "shopping" ? "shopping" : "pantry";
+    if (action === "toggle-filters") state.filtersExpanded = !state.filtersExpanded;
     if (action === "load-characters") await loadCharacters(false);
     if (action === "load-conversations") await loadConversations();
     if (action === "export") await exportData();
@@ -1242,12 +1226,9 @@
       "." + ROOT_CLASS + " .fm-chips{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}",
       "." + ROOT_CLASS + " .fm-chips button{flex:0 0 auto;border:1px solid #d8d8dc;background:#ffffff;border-radius:14px;padding:8px 14px;color:#9a9a9e;font-weight:600;font-size:13px}",
       "." + ROOT_CLASS + " .fm-chips button.active{background:#1c1c1e;color:#ffffff;border-color:#1c1c1e}",
-      "." + ROOT_CLASS + " .fm-item-groups{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px}",
-      "." + ROOT_CLASS + " .fm-item-group h4{display:flex;align-items:center;gap:8px;margin:18px 0 6px;font-size:13px;font-weight:700;color:#9a9a9e;letter-spacing:1px}",
-      "." + ROOT_CLASS + " .fm-item-group:first-child h4{margin-top:0}",
-      "." + ROOT_CLASS + " .fm-item-group h4 span{background:#f2f2f7;color:#6e6e73;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}",
-      "." + ROOT_CLASS + " .fm-items{display:grid;gap:0}",
-      "." + ROOT_CLASS + " .fm-item{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;border:0;border-top:1px solid #ececee;background:#ffffff;border-radius:0;padding:14px 0}",
+      "." + ROOT_CLASS + " .fm-chip-toggle{background:#f2f2f7;color:#6e6e73}",
+      "." + ROOT_CLASS + " .fm-items{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}",
+      "." + ROOT_CLASS + " .fm-item{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;border:1px solid #ececee;background:#ffffff;border-radius:18px;padding:16px}",
       "." + ROOT_CLASS + " .fm-item-main{display:flex;gap:14px;min-width:0}",
       "." + ROOT_CLASS + " .fm-item-main>div{min-width:0}",
       "." + ROOT_CLASS + " .fm-item-main h3{overflow-wrap:anywhere}",
@@ -1270,7 +1251,7 @@
       "." + ROOT_CLASS + " .fm-meal-label{flex:0 0 auto;width:54px;height:54px;border-radius:999px;background:#f2f2f7;border:1px solid #ececee;display:grid;place-items:center;color:#6e6e73;font-size:14px;font-weight:700;letter-spacing:0}",
       "." + ROOT_CLASS + " .fm-meal-reroll{flex:0 0 auto;border:1.5px solid #d8d8dc;background:transparent;color:#1c1c1e;border-radius:14px;padding:11px 12px;display:grid;place-items:center}",
       "." + ROOT_CLASS + " .fm-meal-row textarea{flex:1;min-width:0;border:0;background:#f2f2f7;border-radius:16px;margin-bottom:0;font-size:15px;font-weight:600;color:#1c1c1e;height:54px;min-height:54px;line-height:1.35;padding:17px 18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;resize:none}",
-      "." + ROOT_CLASS + " .fm-meal input{border:0;background:#fff;border-top:0;border-radius:0;padding:0 2px 6px 70px;margin-bottom:4px;color:#6e6e73}",
+      "." + ROOT_CLASS + " .fm-meal textarea[data-menu-note]{display:block;width:100%;border:0;background:#fff;border-top:0;border-radius:0;padding:0 2px 6px 70px;margin-bottom:4px;margin-top:0;color:#6e6e73;font-size:13px;font-weight:400;line-height:1.5;min-height:0;resize:none;white-space:normal;overflow-wrap:break-word}",
       "." + ROOT_CLASS + " .fm-meal p{color:#6e6e73;font-size:13px;line-height:1.5}",
       "." + ROOT_CLASS + " .fm-toggle{display:flex;align-items:center;gap:10px;margin:14px 0;color:#6e6e73;font-weight:600}",
       "." + ROOT_CLASS + " .fm-memory-list{display:grid;gap:8px;max-height:200px;overflow:auto;margin-top:12px}",
