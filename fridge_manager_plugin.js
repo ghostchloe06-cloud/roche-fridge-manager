@@ -336,7 +336,29 @@
   function renderInventoryList() {
     var list = filteredInventory();
     if (!list.length) return '<div class="fm-empty">还没有库存。先加一点食材，菜单生成会更听话。</div>';
-    return '<div class="fm-items">' + list.map(renderInventoryItem).join("") + '</div>';
+    var groups = groupInventoryByCategory(list);
+    return '<div class="fm-item-groups">' + groups.map(function(group) {
+      return [
+        '<section class="fm-item-group">',
+          '<h4>' + escapeHtml(group.name) + '<span>' + group.items.length + '</span></h4>',
+          '<div class="fm-items">' + group.items.map(renderInventoryItem).join("") + '</div>',
+        '</section>'
+      ].join("");
+    }).join("") + '</div>';
+  }
+
+  function groupInventoryByCategory(list) {
+    var order = DEFAULT_CATEGORIES.slice();
+    var buckets = {};
+    list.forEach(function(item) {
+      var cat = item.category || "未分类";
+      if (!buckets[cat]) buckets[cat] = [];
+      buckets[cat].push(item);
+      if (order.indexOf(cat) < 0) order.push(cat);
+    });
+    return order.filter(function(cat) { return buckets[cat] && buckets[cat].length; }).map(function(cat) {
+      return { name: cat, items: buckets[cat] };
+    });
   }
 
   function renderInventoryItem(item) {
@@ -1185,9 +1207,9 @@
       "." + ROOT_CLASS + " .fm-panel-head p{margin-top:7px;color:#6e6e73;font-size:14px;line-height:1.5}",
       "." + ROOT_CLASS + " .fm-panel-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap}",
       "." + ROOT_CLASS + " .fm-form{display:grid;gap:12px}",
-      "." + ROOT_CLASS + " .fm-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}",
-      "." + ROOT_CLASS + " .fm-form-row-5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}",
-      "." + ROOT_CLASS + " .fm-form-row-5 input,." + ROOT_CLASS + " .fm-form-row-5 select{padding:9px 4px;font-size:12px;text-align:center;border-radius:10px}",
+      "." + ROOT_CLASS + " .fm-form-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}",
+      "." + ROOT_CLASS + " .fm-form-row-5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}",
+      "." + ROOT_CLASS + " .fm-form-row-5 input,." + ROOT_CLASS + " .fm-form-row-5 select{min-width:0;padding:9px 2px;font-size:12px;text-align:center;border-radius:10px}",
       "." + ROOT_CLASS + " input,." + ROOT_CLASS + " textarea,." + ROOT_CLASS + " select{width:100%;border:1px solid #d8d8dc;background:#ffffff;border-radius:14px;padding:11px 14px;color:#1c1c1e;outline:none;font-size:14px}",
       "." + ROOT_CLASS + " input[type=checkbox],." + ROOT_CLASS + " input[type=radio]{-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent;width:18px;height:18px;flex:0 0 auto;margin:0;padding:0;border-radius:4px;border:1px solid #d8d8dc;background:#ffffff;position:relative;cursor:pointer}",
       "." + ROOT_CLASS + " input[type=radio]{border-radius:50%}",
@@ -1205,8 +1227,12 @@
       "." + ROOT_CLASS + " .fm-chips{display:flex;gap:10px;overflow:auto;margin:0 -26px 18px;padding:0 26px;scrollbar-width:none}",
       "." + ROOT_CLASS + " .fm-chips button{flex:0 0 auto;border:1px solid #d8d8dc;background:#ffffff;border-radius:14px;padding:8px 14px;color:#9a9a9e;font-weight:600;font-size:13px}",
       "." + ROOT_CLASS + " .fm-chips button.active{background:#1c1c1e;color:#ffffff;border-color:#1c1c1e}",
-      "." + ROOT_CLASS + " .fm-items{display:grid;gap:0;margin:0 -26px}",
-      "." + ROOT_CLASS + " .fm-item{display:flex;justify-content:space-between;gap:14px;border:0;border-top:1px solid #ececee;background:#ffffff;border-radius:0;padding:20px 26px}",
+      "." + ROOT_CLASS + " .fm-item-groups{display:grid;grid-template-columns:1fr;gap:0}",
+      "." + ROOT_CLASS + " .fm-item-group h4{display:flex;align-items:center;gap:8px;margin:18px 0 6px;font-size:13px;font-weight:700;color:#9a9a9e;letter-spacing:1px}",
+      "." + ROOT_CLASS + " .fm-item-group:first-child h4{margin-top:0}",
+      "." + ROOT_CLASS + " .fm-item-group h4 span{background:#f2f2f7;color:#6e6e73;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}",
+      "." + ROOT_CLASS + " .fm-items{display:grid;gap:0}",
+      "." + ROOT_CLASS + " .fm-item{display:flex;justify-content:space-between;gap:14px;border:0;border-top:1px solid #ececee;background:#ffffff;border-radius:0;padding:14px 0}",
       "." + ROOT_CLASS + " .fm-item-main{display:flex;gap:14px;min-width:0}",
       "." + ROOT_CLASS + " .fm-item-main p{color:#6e6e73;font-size:14px;line-height:1.55}",
       "." + ROOT_CLASS + " .fm-item-actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;align-items:center}",
@@ -1256,6 +1282,7 @@
       "@media (min-width: 821px){",
       "." + ROOT_CLASS + " .fm-grid{grid-template-columns:1fr 1fr}",
       "." + ROOT_CLASS + " .fm-menu-panel{grid-column:auto}",
+      "." + ROOT_CLASS + " .fm-item-groups{grid-template-columns:1fr 1fr;gap:0 32px}",
       "}",
       "@media (max-width: 620px){",
       "." + ROOT_CLASS + " .fm-header{height:64px;grid-template-columns:40px 1fr 40px;padding:10px 14px}",
@@ -1268,8 +1295,8 @@
       "." + ROOT_CLASS + " .fm-form-row{gap:8px}",
       "." + ROOT_CLASS + " .fm-form-row input,." + ROOT_CLASS + " .fm-form-row select{padding-left:10px;padding-right:10px;font-size:13px}",
       "." + ROOT_CLASS + " .fm-chips{margin-left:-18px;margin-right:-18px;padding-left:18px;padding-right:18px}",
-      "." + ROOT_CLASS + " .fm-items,." + ROOT_CLASS + " .fm-menu-list{margin-left:-18px;margin-right:-18px}",
-      "." + ROOT_CLASS + " .fm-item{display:grid;padding-left:18px;padding-right:18px}",
+      "." + ROOT_CLASS + " .fm-menu-list{margin-left:-18px;margin-right:-18px}",
+      "." + ROOT_CLASS + " .fm-item{display:grid}",
       "." + ROOT_CLASS + " .fm-day-row{grid-template-columns:58px 1fr}",
       "." + ROOT_CLASS + " .fm-day-label{padding-left:18px}",
       "." + ROOT_CLASS + " .fm-meal-cells{padding-right:18px}",
