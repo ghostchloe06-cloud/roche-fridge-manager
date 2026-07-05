@@ -647,7 +647,14 @@
     var target = event.target;
     if (!runtime.root || !runtime.root.contains(target)) return;
     if (target.matches("[data-menu-title]")) {
-      updateMenuSlot(target.getAttribute("data-menu-title"), { title: target.value, locked: !!target.value.trim() });
+      var titleSlotId = target.getAttribute("data-menu-title");
+      var existingSlot = state.menu.filter(function(s) { return s.id === titleSlotId; })[0];
+      var titlePatch = { title: target.value, locked: !!target.value.trim() };
+      if (existingSlot && existingSlot.title !== target.value) {
+        titlePatch.ingredients = [];
+        titlePatch.calories = "";
+      }
+      updateMenuSlot(titleSlotId, titlePatch);
       await saveState();
       return;
     }
