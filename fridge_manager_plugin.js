@@ -44,7 +44,7 @@
     trash: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M6 6l1 15h10l1-15"/></svg>',
     edit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>',
     back: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>',
-    dots: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg>',
+    check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>',
     heart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></svg>',
     spark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 2.3 7.1L22 12l-7.7 2.9L12 22l-2.3-7.1L2 12l7.7-2.9Z"/></svg>',
     refresh: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/></svg>',
@@ -240,11 +240,7 @@
       '<header class="fm-header">',
         '<button class="fm-nav-btn" data-action="close" title="返回">' + ICONS.back + '</button>',
         '<div class="fm-title"><h1>我的冰箱</h1><p>FRIDGE</p></div>',
-        '<div class="fm-header-actions">',
-          '<button class="fm-icon-btn" data-action="export" title="导出备份">' + ICONS.download + '</button>',
-          '<label class="fm-icon-btn fm-file-btn" title="导入备份">' + ICONS.upload + '<input data-import-backup type="file" accept="application/json"></label>',
-          '<button class="fm-icon-btn" title="更多">' + ICONS.dots + '</button>',
-        '</div>',
+        '<div class="fm-header-actions"></div>',
       '</header>',
       '<section class="fm-summary">',
         '<span>库存 ' + stats.total + '</span>',
@@ -421,7 +417,15 @@
         '<h2>角色管理</h2>' +
         renderMemoryPanel() +
       '</section>' +
-    '</div>';
+    '</div>' +
+    '<section class="fm-panel">' +
+      '<h2>数据备份</h2>' +
+      '<p class="fm-muted" style="margin-bottom:14px">导出全部库存、菜单、健康档案和挂载设置为一个 JSON 文件；导入可以还原到之前导出的状态。</p>' +
+      '<div class="fm-actions">' +
+        '<button class="fm-secondary" data-action="export">' + ICONS.download + '<span>导出备份</span></button>' +
+        '<label class="fm-secondary fm-file-btn" style="position:relative">' + ICONS.upload + '<span>导入备份</span><input data-import-backup type="file" accept="application/json"></label>' +
+      '</div>' +
+    '</section>';
   }
 
   function renderMenuGrid() {
@@ -473,10 +477,6 @@
   function renderMemoryPanel() {
     var enabled = state.settings.memoryEnabled;
     var manager = selectedManager();
-    var charOptions = ['<option value="">不指定角色</option>'].concat(runtime.characters.map(function(char) {
-      var name = displayName(char);
-      return '<option value="' + escapeHtml(char.id) + '"' + (state.managerCharacterId === char.id ? " selected" : "") + '>' + escapeHtml(name) + '</option>';
-    })).join("");
     var rows = runtime.conversations.slice(0, 60).map(function(conv) {
       var cid = conv.conversationId || conv.id;
       var checked = state.memorySourceIds.indexOf(cid) >= 0;
@@ -490,14 +490,14 @@
     }).join("");
     return [
       '<p class="fm-muted">选择一个 Roche 角色来当三餐管理员。生成菜单时会参考 TA 的人设、语气和对应会话长期记忆。</p>',
-      '<div class="fm-form fm-manager-box">',
-        '<select data-manager-character>' + charOptions + '</select>',
-        '<textarea data-manager-style rows="2" placeholder="你希望 TA 怎么管你，例如：温柔但严格、少油少糖、晚餐别太重">' + escapeHtml(state.managerStyle || "") + '</textarea>',
-      '</div>',
-      manager ? '<div class="fm-manager-card"><strong>当前管理员：' + escapeHtml(displayName(manager)) + '</strong><span>' + escapeHtml(manager.bio || manager.description || "会在生成时读取人设作为参考。") + '</span></div>' : '<div class="fm-empty small">还没有指定角色。也可以先用普通助手生成。</div>',
-      '<div class="fm-actions">',
+      '<div class="fm-actions" style="margin-bottom:10px">',
         '<button class="fm-secondary" data-action="load-characters">刷新角色列表</button>',
       '</div>',
+      renderManagerCharList(),
+      '<div class="fm-form fm-manager-box">',
+        '<textarea data-manager-style rows="2" placeholder="你希望 TA 怎么管你，例如：温柔但严格、少油少糖、晚餐别太重">' + escapeHtml(state.managerStyle || "") + '</textarea>',
+      '</div>',
+      manager ? '<div class="fm-manager-card"><strong>当前管理员：' + escapeHtml(displayName(manager)) + '</strong><span>' + escapeHtml(manager.bio || manager.description || "会在生成时读取人设作为参考。") + '</span></div>' : "",
       '<label class="fm-toggle"><input type="checkbox" data-action="toggle-memory"' + (enabled ? " checked" : "") + '>生成菜单时读取已勾选会话的长期记忆</label>',
       '<div class="fm-actions">',
         '<button class="fm-secondary" data-action="load-conversations">刷新会话列表</button>',
@@ -507,6 +507,28 @@
       '</div>',
       '<p class="fm-muted">只读取用于提示词参考，不写入 Roche 主记忆。适合放忌口、常吃饭、运动习惯、口味偏好。</p>'
     ].join("");
+  }
+
+  function renderManagerCharList() {
+    var options = [{ id: "", label: "不指定角色", avatar: "", sub: "生成时不参考特定角色" }].concat(runtime.characters.map(function(char) {
+      var name = displayName(char);
+      return { id: char.id, label: name, avatar: char.avatar || "", sub: (char.handle && char.handle !== name) ? char.handle : "" };
+    }));
+    if (options.length === 1) {
+      return '<div class="fm-empty small">还没有读取角色列表，点上面「刷新角色列表」试试。</div>';
+    }
+    return '<div class="fm-char-list">' + options.map(function(opt) {
+      var selected = state.managerCharacterId === opt.id;
+      var initial = (opt.label || "?").trim().charAt(0) || "?";
+      var avatarInner = opt.avatar ? '<img src="' + escapeHtml(opt.avatar) + '" alt="">' : escapeHtml(initial);
+      return [
+        '<button type="button" class="fm-char-row' + (selected ? " active" : "") + '" data-action="select-manager" data-id="' + escapeHtml(opt.id) + '">',
+          '<span class="fm-char-avatar">' + avatarInner + '</span>',
+          '<span class="fm-char-info"><strong>' + escapeHtml(opt.label) + '</strong>' + (opt.sub ? '<em>' + escapeHtml(opt.sub) + '</em>' : "") + '</span>',
+          selected ? '<span class="fm-char-check">' + ICONS.check + '</span>' : "",
+        '</button>'
+      ].join("");
+    }).join("") + '</div>';
   }
 
   function renderShoppingList() {
@@ -564,6 +586,7 @@
     if (action === "write-today-memory") await writeTodayMealsMemory();
     if (action === "clear-shopping") state.shoppingList = [];
     if (action === "delete-shopping") state.shoppingList = state.shoppingList.filter(function(x) { return x.id !== itemId; });
+    if (action === "select-manager") state.managerCharacterId = itemId || "";
     if (action === "load-characters") await loadCharacters(false);
     if (action === "load-conversations") await loadConversations();
     if (action === "export") await exportData();
@@ -611,12 +634,6 @@
       if (target.checked && state.memorySourceIds.indexOf(mid) < 0) state.memorySourceIds.push(mid);
       if (!target.checked) state.memorySourceIds = state.memorySourceIds.filter(function(x) { return x !== mid; });
       await saveState();
-      return;
-    }
-    if (target.matches("[data-manager-character]")) {
-      state.managerCharacterId = target.value;
-      await saveState();
-      render(runtime.container);
       return;
     }
     if (target.matches("[data-manager-style]")) {
@@ -1109,11 +1126,11 @@
     style.setAttribute("data-roche-plugin", PLUGIN_ID);
     style.textContent = [
       "." + ROOT_CLASS + " *{box-sizing:border-box}",
-      "." + ROOT_CLASS + "{min-height:100%;background:#ffffff;color:#1c1c1e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}",
+      "." + ROOT_CLASS + "{display:flex;flex-direction:column;height:100%;background:#ffffff;color:#1c1c1e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}",
       "." + ROOT_CLASS + " button,." + ROOT_CLASS + " input,." + ROOT_CLASS + " textarea,." + ROOT_CLASS + " select{font:inherit}",
       "." + ROOT_CLASS + " button{cursor:pointer;-webkit-tap-highlight-color:transparent}",
       "." + ROOT_CLASS + " svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}",
-      "." + ROOT_CLASS + " .fm-shell{max-width:760px;margin:0 auto;padding:0 0 90px;background:#ffffff}",
+      "." + ROOT_CLASS + " .fm-shell{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;max-width:760px;margin:0 auto;padding:0 0 90px;background:#ffffff;width:100%}",
       "." + ROOT_CLASS + " .fm-header{position:sticky;top:0;z-index:5;height:82px;display:grid;grid-template-columns:72px 1fr 192px;align-items:center;padding:10px 18px;border-bottom:1px solid #ececee;background:rgba(255,255,255,.96);backdrop-filter:blur(18px)}",
       "." + ROOT_CLASS + " .fm-title{text-align:center;min-width:0}",
       "." + ROOT_CLASS + " h1{margin:0;font-size:28px;line-height:1.05;font-weight:700;letter-spacing:0}",
@@ -1182,6 +1199,16 @@
       "." + ROOT_CLASS + " .fm-toggle input,." + ROOT_CLASS + " .fm-memory-row input,." + ROOT_CLASS + " .fm-shop-row input{width:auto;accent-color:#1c1c1e}",
       "." + ROOT_CLASS + " .fm-memory-list{display:grid;gap:8px;max-height:200px;overflow:auto;margin-top:12px}",
       "." + ROOT_CLASS + " .fm-memory-row{display:flex;align-items:center;gap:10px;background:#ffffff;border:1px solid #ececee;border-radius:14px;padding:12px}",
+      "." + ROOT_CLASS + " .fm-char-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;margin:12px 0}",
+      "." + ROOT_CLASS + " .fm-char-row{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:#ffffff;border:1px solid #ececee;border-radius:14px;padding:10px 14px;color:#1c1c1e}",
+      "." + ROOT_CLASS + " .fm-char-row.active{border-color:#1c1c1e;background:#f7f7f8}",
+      "." + ROOT_CLASS + " .fm-char-avatar{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#f2f2f7;display:grid;place-items:center;font-weight:600;color:#6e6e73;overflow:hidden}",
+      "." + ROOT_CLASS + " .fm-char-avatar img{width:100%;height:100%;object-fit:cover;display:block}",
+      "." + ROOT_CLASS + " .fm-char-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}",
+      "." + ROOT_CLASS + " .fm-char-info strong{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+      "." + ROOT_CLASS + " .fm-char-info em{font-style:normal;font-size:12.5px;color:#9a9a9e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+      "." + ROOT_CLASS + " .fm-char-check{flex:0 0 auto;width:20px;height:20px;color:#1c1c1e}",
+      "." + ROOT_CLASS + " .fm-char-check svg{width:20px;height:20px}",
       "." + ROOT_CLASS + " .fm-manager-box{margin:14px 0}",
       "." + ROOT_CLASS + " .fm-manager-card{display:grid;gap:6px;background:#f7f7f8;border:1px solid #ececee;border-radius:18px;padding:14px;margin:12px 0}",
       "." + ROOT_CLASS + " .fm-manager-card span{color:#6e6e73;font-size:14px;line-height:1.5}",
