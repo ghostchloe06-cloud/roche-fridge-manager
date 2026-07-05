@@ -1,0 +1,17 @@
+{
+  "id": "fridge-manager",
+  "name": "我的冰箱",
+  "version": "1.0.0",
+  "description": "管理冰箱/储物柜库存，按本周三餐生成菜单，并根据库存整理购物清单。",
+  "author": "chloe",
+  "entry": "https://raw.githubusercontent.com/ghostchloe06-cloud/roche-fridge-manager/main/fridge_manager_plugin.js",
+  "hash": "",
+  "permissions": [
+    "character:read",
+    "memory:read",
+    "memory:write",
+    "ai:chat",
+    "storage",
+    "ui"
+  ]
+}
