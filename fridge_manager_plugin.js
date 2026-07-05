@@ -12,8 +12,10 @@
     { id: "dinner", label: "晚" }
   ];
   var DEFAULT_CATEGORIES = ["主食", "蛋白质", "蔬菜", "水果", "乳制品", "调味", "饮料", "零食", "未分类"];
+  var MEAL_SUB_TABS = ["menu", "shopping", "profile"];
   var DEFAULT_STATE = {
     tab: "inventory",
+    mealSubTab: "menu",
     filter: "全部",
     inventory: [],
     menu: [],
@@ -125,6 +127,7 @@
     if (!Array.isArray(next.menu) || next.menu.length !== 21) next.menu = buildEmptyMenu();
     if (!Array.isArray(next.shoppingList)) next.shoppingList = [];
     if (!Array.isArray(next.memorySourceIds)) next.memorySourceIds = [];
+    if (MEAL_SUB_TABS.indexOf(next.mealSubTab) < 0) next.mealSubTab = "menu";
     next.health = Object.assign({}, DEFAULT_STATE.health, saved.health || {});
     next.settings = Object.assign({}, DEFAULT_STATE.settings, saved.settings || {});
     next.busy = false;
@@ -360,32 +363,65 @@
 
   function renderMenuTab() {
     return [
+      renderMealSubTabs(),
+      state.mealSubTab === "shopping" ? renderShoppingSection() :
+      state.mealSubTab === "profile" ? renderProfileSection() :
+      renderMenuSection()
+    ].join("");
+  }
+
+  function renderMealSubTabs() {
+    var tabs = [
+      { id: "menu", label: "菜单" },
+      { id: "shopping", label: "购物清单" },
+      { id: "profile", label: "角色与档案" }
+    ];
+    return '<nav class="fm-subtabs" aria-label="本周三餐子页面">' + tabs.map(function(t) {
+      return '<button class="' + (state.mealSubTab === t.id ? "active" : "") + '" data-subtab="' + t.id + '">' + t.label + '</button>';
+    }).join("") + '</nav>';
+  }
+
+  function renderMenuSection() {
+    return [
       '<section class="fm-panel fm-menu-panel">',
         '<div class="fm-panel-head">',
           '<div><h2>本周三餐</h2><p>手填的格子会锁定，留空的格子可由 AI 补齐。</p></div>',
           '<div class="fm-panel-actions">',
             '<button class="fm-secondary" data-action="write-today-memory">' + ICONS.heart + '<span>记住今天</span></button>',
-            '<button class="fm-secondary" data-action="generate-shopping">' + ICONS.list + '<span>生成购物清单</span></button>',
             '<button class="fm-primary" data-action="generate-menu">' + ICONS.spark + '<span>生成空白餐</span></button>',
           '</div>',
         '</div>',
         renderMenuGrid(),
-      '</section>',
-      '<div class="fm-grid">',
-        '<section class="fm-panel">',
-          '<h2>健康档案</h2>',
-          renderHealthForm(),
-        '</section>',
-        '<section class="fm-panel">',
-          '<h2>角色管理</h2>',
-          renderMemoryPanel(),
-        '</section>',
-      '</div>',
+      '</section>'
+    ].join("");
+  }
+
+  function renderShoppingSection() {
+    return [
       '<section class="fm-panel">',
-        '<div class="fm-panel-head"><h2>购物清单</h2><button class="fm-ghost-btn" data-action="clear-shopping">清空</button></div>',
+        '<div class="fm-panel-head">',
+          '<div><h2>购物清单</h2><p>根据本周菜单所需食材和当前库存的差异生成，可手动勾选、删除。</p></div>',
+          '<div class="fm-panel-actions">',
+            '<button class="fm-ghost-btn" data-action="clear-shopping">清空</button>',
+            '<button class="fm-primary" data-action="generate-shopping">' + ICONS.list + '<span>生成购物清单</span></button>',
+          '</div>',
+        '</div>',
         renderShoppingList(),
       '</section>'
     ].join("");
+  }
+
+  function renderProfileSection() {
+    return '<div class="fm-grid">' +
+      '<section class="fm-panel">' +
+        '<h2>健康档案</h2>' +
+        renderHealthForm() +
+      '</section>' +
+      '<section class="fm-panel">' +
+        '<h2>角色管理</h2>' +
+        renderMemoryPanel() +
+      '</section>' +
+    '</div>';
   }
 
   function renderMenuGrid() {
@@ -488,13 +524,20 @@
   }
 
   async function handleClick(event) {
-    var target = event.target.closest("[data-action], [data-tab], [data-filter]");
+    var target = event.target.closest("[data-action], [data-tab], [data-subtab], [data-filter]");
     if (!target || !runtime.root || !runtime.root.contains(target)) return;
     var action = target.getAttribute("data-action");
     var tab = target.getAttribute("data-tab");
+    var subtab = target.getAttribute("data-subtab");
     var filter = target.getAttribute("data-filter");
     if (tab) {
       state.tab = tab;
+      render(runtime.container);
+      saveState();
+      return;
+    }
+    if (subtab) {
+      state.mealSubTab = subtab;
       render(runtime.container);
       saveState();
       return;
@@ -1087,6 +1130,11 @@
       "." + ROOT_CLASS + " .fm-tabs{display:flex;gap:10px;padding:18px;border-bottom:1px solid #ececee;background:#ffffff}",
       "." + ROOT_CLASS + " .fm-tabs button{height:54px;border-radius:14px;border:1px solid #d8d8dc;background:#ffffff;padding:0 24px;color:#9a9a9e;font-weight:600;font-size:17px}",
       "." + ROOT_CLASS + " .fm-tabs button.active{background:#1c1c1e;color:#ffffff;border-color:#1c1c1e}",
+      "." + ROOT_CLASS + " .fm-subtabs{display:flex;margin:0 18px 18px;border-radius:14px;overflow:hidden;border:1px solid #d8d8dc}",
+      "." + ROOT_CLASS + " .fm-subtabs button{flex:1;text-align:center;padding:11px 6px;font-size:13px;font-weight:500;border:0;background:#ffffff;color:#6e6e73}",
+      "." + ROOT_CLASS + " .fm-subtabs button.active{background:#1c1c1e;color:#ffffff;font-weight:600}",
+      "." + ROOT_CLASS + " .fm-subtabs button:not(:last-child){border-right:1px solid #d8d8dc}",
+      "." + ROOT_CLASS + " .fm-subtabs button.active:not(:last-child){border-right-color:#1c1c1e}",
       "." + ROOT_CLASS + " .fm-grid{display:grid;grid-template-columns:1fr;gap:0;margin:0}",
       "." + ROOT_CLASS + " .fm-panel{border:0;border-bottom:1px solid #ececee;background:#ffffff;border-radius:0;padding:22px 26px;box-shadow:none}",
       "." + ROOT_CLASS + " .fm-form-panel{background:#ffffff}",
