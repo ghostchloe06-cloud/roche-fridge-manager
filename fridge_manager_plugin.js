@@ -224,6 +224,8 @@
     if (!container) return;
     runtime.root = container.querySelector("." + ROOT_CLASS);
     if (!runtime.root) return;
+    var prevShell = runtime.root.querySelector(".fm-shell");
+    var scrollTop = prevShell ? prevShell.scrollTop : 0;
     runtime.root.innerHTML = [
       '<section class="fm-shell">',
         renderHeader(),
@@ -232,6 +234,8 @@
         state.tab === "inventory" ? renderInventoryTab() : renderMenuTab(),
       '</section>'
     ].join("");
+    var nextShell = runtime.root.querySelector(".fm-shell");
+    if (nextShell && scrollTop) nextShell.scrollTop = scrollTop;
   }
 
   function renderHeader() {
@@ -1131,11 +1135,11 @@
     style.setAttribute("data-roche-plugin", PLUGIN_ID);
     style.textContent = [
       "." + ROOT_CLASS + " *{box-sizing:border-box}",
-      "." + ROOT_CLASS + "{display:flex;flex-direction:column;height:100%;background:#ffffff;color:#1c1c1e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}",
+      "." + ROOT_CLASS + "{display:flex;flex-direction:column;height:100%;max-width:100%;overflow-x:hidden;background:#ffffff;color:#1c1c1e;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif}",
       "." + ROOT_CLASS + " button,." + ROOT_CLASS + " input,." + ROOT_CLASS + " textarea,." + ROOT_CLASS + " select{font:inherit}",
       "." + ROOT_CLASS + " button{cursor:pointer;-webkit-tap-highlight-color:transparent}",
       "." + ROOT_CLASS + " svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}",
-      "." + ROOT_CLASS + " .fm-shell{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;max-width:760px;margin:0 auto;padding:0 0 90px;background:#ffffff;width:100%}",
+      "." + ROOT_CLASS + " .fm-shell{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;max-width:760px;margin:0 auto;padding:0 0 90px;background:#ffffff;width:100%}",
       "." + ROOT_CLASS + " .fm-header{position:sticky;top:0;z-index:5;height:64px;display:grid;grid-template-columns:40px 1fr 40px;align-items:center;padding:10px 18px;border-bottom:1px solid #ececee;background:rgba(255,255,255,.96);backdrop-filter:blur(18px)}",
       "." + ROOT_CLASS + " .fm-title{text-align:center;min-width:0}",
       "." + ROOT_CLASS + " h1{margin:0;font-size:28px;line-height:1.05;font-weight:700;letter-spacing:0}",
