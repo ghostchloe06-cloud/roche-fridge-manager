@@ -31,7 +31,8 @@
     managerCharacterId: "",
     managerStyle: "",
     settings: {
-      memoryEnabled: false
+      memoryEnabled: false,
+      menuMode: "pantry"
     },
     editingItemId: null,
     busy: false,
@@ -382,14 +383,22 @@
   }
 
   function renderMenuSection() {
+    var mode = state.settings.menuMode === "shopping" ? "shopping" : "pantry";
+    var desc = mode === "shopping"
+      ? "自由搭配模式：AI 不受库存限制设计菜单，生成后去「购物清单」里看需要采购什么。"
+      : "仅用库存模式：AI 只会用现有库存拼菜单，库存不够会在备注里说明，不会凭空加新食材。";
     return [
       '<section class="fm-panel fm-menu-panel">',
         '<div class="fm-panel-head">',
-          '<div><h2>本周三餐</h2><p>手填的格子会锁定，留空的格子可由 AI 补齐。</p></div>',
+          '<div><h2>本周三餐</h2><p>手填的格子会锁定，留空的格子可由 AI 补齐。' + desc + '</p></div>',
           '<div class="fm-panel-actions">',
             '<button class="fm-secondary" data-action="write-today-memory">' + ICONS.heart + '<span>记住今天</span></button>',
             '<button class="fm-primary" data-action="generate-menu">' + ICONS.spark + '<span>生成空白餐</span></button>',
           '</div>',
+        '</div>',
+        '<div class="fm-chips">',
+          '<button class="' + (mode === "pantry" ? "active" : "") + '" data-action="set-menu-mode" data-id="pantry">仅用库存</button>',
+          '<button class="' + (mode === "shopping" ? "active" : "") + '" data-action="set-menu-mode" data-id="shopping">自由搭配+采购</button>',
         '</div>',
         renderMenuGrid(),
       '</section>'
@@ -596,6 +605,7 @@
     if (action === "clear-shopping") state.shoppingList = [];
     if (action === "delete-shopping") state.shoppingList = state.shoppingList.filter(function(x) { return x.id !== itemId; });
     if (action === "select-manager") state.managerCharacterId = itemId || "";
+    if (action === "set-menu-mode") state.settings.menuMode = itemId === "shopping" ? "shopping" : "pantry";
     if (action === "load-characters") await loadCharacters(false);
     if (action === "load-conversations") await loadConversations();
     if (action === "export") await exportData();
@@ -914,7 +924,9 @@
       var system = [
         managerContext ? "你现在扮演用户选择的 Roche 角色来管理用户的三餐。" : "你是一个冰箱库存和本周三餐规划助手。",
         managerContext ? "你要参考角色人设和长期记忆，以该角色会做出的照顾方式来安排菜单；但输出 JSON 字段必须保持客观简洁。" : "",
-        "请优先使用现有库存，临期食材优先安排。",
+        state.settings.menuMode === "shopping"
+          ? "这次是『自由搭配下周菜单』模式：不必受当前库存限制，可以自由引入库存里没有的新鲜食材，优先考虑营养均衡和口味搭配；生成后用户会根据菜单去采购缺少的食材，不用刻意迁就现有库存。"
+          : "这次是『仅用库存』模式：只能使用下面库存列表里已有的食材（盐、油、糖、酱油、醋、葱姜蒜等基础调味料除外），绝不允许引入库存里没有的新食材；如果库存不够做出合理一餐，就用现有库存拼一个简化版本，并在 note 里如实说明库存有限，不能凭空编出库存里没有的食材。临期食材优先安排。",
         "用户手动填写且不在 targetIds 的餐格必须保持不变。",
         "如果有饮食偏好/忌口/习惯记忆，请严格避开忌口，把偏好当作软约束。",
         "健康档案只是软参考，不要做精确医学或营养诊断。",
